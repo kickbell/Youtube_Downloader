@@ -4,9 +4,29 @@ import json
 import shutil
 from PIL import Image
 
+# yt-dlp 경로 찾기
+def find_ytdlp_path():
+    """yt-dlp 실행파일 경로를 찾습니다."""
+    possible_paths = [
+        'yt-dlp',  # PATH에 있는 경우
+        os.path.expanduser('~/Library/Python/3.9/bin/yt-dlp'),  # 일반적인 pip 설치 경로
+        '/usr/local/bin/yt-dlp',  # brew 설치 경로
+        '/opt/homebrew/bin/yt-dlp',  # M1 Mac brew 경로
+    ]
+    
+    for path in possible_paths:
+        try:
+            subprocess.run([path, '--version'], capture_output=True, check=True)
+            return path
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            continue
+    
+    raise FileNotFoundError("yt-dlp를 찾을 수 없습니다. 'pip3 install yt-dlp' 로 설치해주세요.")
+
 def get_video_info(url):
     """yt-dlp를 사용하여 전체 비디오 정보를 JSON으로 가져옵니다."""
-    command = ['yt-dlp', '-j', url]
+    ytdlp_path = find_ytdlp_path()
+    command = [ytdlp_path, '-j', url]
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
@@ -60,19 +80,29 @@ def display_formats(formats, duration, interval_seconds):
 def download_video(url, format_id, video_title):
     """선택한 포맷으로 비디오를 다운로드하고, 파일 경로를 반환합니다."""
     safe_title = "".join(c for c in video_title if c.isalnum() or c in (' ', '_')).rstrip()
-    download_folder = os.path.join('/Users/jc.kim/Desktop/YoutubeDownloader', safe_title)
+    
+    # 데스크탑에 YouTube_Downloads 폴더 생성
+    desktop_path = os.path.expanduser("~/Desktop")
+    base_download_folder = os.path.join(desktop_path, "YouTube_Downloads")
+    
+    # 기본 다운로드 폴더가 없으면 생성
+    if not os.path.exists(base_download_folder):
+        os.makedirs(base_download_folder)
+    
+    download_folder = os.path.join(base_download_folder, safe_title)
     
     if not os.path.exists(download_folder):
         os.makedirs(download_folder)
 
     output_template = os.path.join(download_folder, f'{safe_title}.%(ext)s')
-    info_command = ['yt-dlp', '-j', '-f', format_id, url]
+    ytdlp_path = find_ytdlp_path()
+    info_command = [ytdlp_path, '-j', '-f', format_id, url]
     video_info = json.loads(subprocess.run(info_command, capture_output=True, text=True).stdout)
     ext = video_info.get('ext', 'mp4')
     final_video_path = os.path.join(download_folder, f'{safe_title}.{ext}')
 
     print(f"\n'{download_folder}' 폴더에 다운로드를 시작합니다...")
-    command = ['yt-dlp', '-f', format_id, '-o', output_template, url]
+    command = [ytdlp_path, '-f', format_id, '-o', output_template, url]
     
     try:
         subprocess.run(command, check=True)
