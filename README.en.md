@@ -7,7 +7,7 @@
 A simple CLI tool to download YouTube videos (optimized for Shorts), extract screenshots at a fixed interval, and bundle them into a single PDF.
 
 ## ✅ Usage Guide 
-<img width="925" height="564" alt="Image" src="https://github.com/user-attachments/assets/55252672-8e3a-455f-806b-d168f0e708a4" />
+<img width="1011" height="623" alt="Image" src="https://github.com/user-attachments/assets/55252672-8e3a-455f-806b-d168f0e708a4" />
 <img width="1011" height="623" alt="Image" src="https://github.com/user-attachments/assets/6fee779b-d312-44f5-bf8b-d9863f56dc74" />
 
 ## ✨ Features

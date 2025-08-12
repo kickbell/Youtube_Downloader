@@ -7,7 +7,7 @@
 YouTube 동영상을 원하는 화질로 다운로드하고, 일정 간격으로 스크린샷을 추출한 뒤 하나의 PDF로 묶어주는 간단한 CLI 도구입니다.
 
 ## ✅ 사용 가이드 
-<img width="925" height="564" alt="Image" src="https://github.com/user-attachments/assets/55252672-8e3a-455f-806b-d168f0e708a4" />
+<img width="1011" height="623" alt="Image" src="https://github.com/user-attachments/assets/55252672-8e3a-455f-806b-d168f0e708a4" />
 <img width="1011" height="623" alt="Image" src="https://github.com/user-attachments/assets/6fee779b-d312-44f5-bf8b-d9863f56dc74" />
 
 ## ✨ 주요 기능
