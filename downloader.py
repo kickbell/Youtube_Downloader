@@ -71,29 +71,76 @@ def display_formats(formats, duration, interval_seconds):
         else:
             estimated_pdf_size_str = f"{estimated_pdf_size_kb:.2f} KB"
 
-    print("-" * 80)
-    print("{:<4} {:<9} {:<14} {:<19} {:<24}".format("번호", "해상도", "파일(예상)", "PDF(예상)", "코덱"))
-    print("-" * 80)
+    print("-" * 95)
+    print("{:<4} {:<12} {:<14} {:<19} {:<24} {:<20}".format("번호", "해상도", "파일(예상)", "PDF(예상)", "코덱", "설명"))
+    print("-" * 95)
 
     display_list = []
+    all_formats = []
+    
+    # 모든 사용 가능한 포맷 수집
     for f in formats:
         if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
             filesize = f.get('filesize') or f.get('filesize_approx')
-            filesize_str = f"{filesize / 1024 / 1024:.2f} MB" if filesize else "N/A"
-            
-            display_list.append({
-                'id': f['format_id'],
-                'resolution': f.get('resolution', 'N/A'),
-                'filesize': filesize_str,
-                'vcodec': f.get('vcodec', 'N/A')
-            })
-
+            if filesize:  # 파일 크기가 있는 것만
+                all_formats.append({
+                    'format': f,
+                    'filesize_mb': filesize / 1024 / 1024,
+                    'resolution': f.get('resolution', 'N/A')
+                })
+    
+    # 파일 크기 순으로 정렬 (큰 것부터)
+    all_formats.sort(key=lambda x: x['filesize_mb'], reverse=True)
+    
+    if not all_formats:
+        return display_list
+    
+    # 가장 큰 포맷 (원본 품질)
+    best_format = all_formats[0]
+    filesize_str = f"{best_format['filesize_mb']:.2f} MB"
+    original_option = {
+        'id': best_format['format']['format_id'],
+        'resolution': best_format['resolution'],
+        'filesize': filesize_str,
+        'filesize_mb': best_format['filesize_mb'],
+        'vcodec': best_format['format'].get('vcodec', 'N/A'),
+        'description': '원본 품질'
+    }
+    display_list.append(original_option)
+    
+    # 원본이 5MB 이상이면 저용량 옵션 추가
+    if best_format['filesize_mb'] > 5:
+        # 5MB 미만인 가장 큰 포맷 찾기
+        found_low_quality = False
+        for fmt in all_formats:
+            if fmt['filesize_mb'] < 5:
+                filesize_str = f"{fmt['filesize_mb']:.2f} MB"
+                low_quality_option = {
+                    'id': fmt['format']['format_id'],
+                    'resolution': fmt['resolution'],
+                    'filesize': filesize_str,
+                    'filesize_mb': fmt['filesize_mb'],
+                    'vcodec': fmt['format'].get('vcodec', 'N/A'),
+                    'description': '저용량 (5MB 미만)'
+                }
+                display_list.append(low_quality_option)
+                found_low_quality = True
+                break
+        
     for i, item in enumerate(display_list):
-        print("{:<5} {:<12} {:<18} {:<22} {:<15}".format(
-            i + 1, item['resolution'], item['filesize'], estimated_pdf_size_str, item['vcodec']
+        print("{:<5} {:<15} {:<18} {:<22} {:<15} {:<20}".format(
+            i + 1, item['resolution'], item['filesize'], estimated_pdf_size_str, 
+            item['vcodec'], item['description']
         ))
     
-    print("-" * 80)
+    print("-" * 95)
+    
+    # 5MB 미만 옵션이 없는 경우 경고 메시지 (표 아래에)
+    if best_format['filesize_mb'] > 5:
+        found_low_quality = any(fmt['filesize_mb'] < 5 for fmt in all_formats)
+        if not found_low_quality:
+            print("⚠️  5MB 미만 옵션이 없습니다. 원본 품질만 사용 가능합니다.")
+    
     return display_list
 
 def download_video(url, format_id, video_title):
@@ -237,7 +284,7 @@ def main():
 
     # 포맷이 1개면 자동으로 선택
     if len(display_list) == 1:
-        print("포맷이 1개뿐이므로 자동으로 선택합니다.")
+        print("\n사용 가능한 비디오 포맷이 1개이므로 자동으로 선택합니다.")
         selected_format_id = display_list[0]['id']
         downloaded_video_path = download_video(youtube_url, selected_format_id, video_title)
         
