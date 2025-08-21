@@ -103,7 +103,9 @@ def download_video(url, format_id, video_title):
     if len(safe_title) > 50:  # 50자로 제한 (한글 고려)
         safe_title = safe_title[:50].rstrip()
     
-    download_folder = os.path.join('/Users/jc.kim/Desktop/YoutubeDownloader', safe_title)
+    # 맥의 다운로드 폴더 사용
+    downloads_path = os.path.expanduser('~/Downloads')
+    download_folder = os.path.join(downloads_path, safe_title)
     
     if not os.path.exists(download_folder):
         os.makedirs(download_folder)
