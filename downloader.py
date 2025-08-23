@@ -4,6 +4,7 @@ import json
 import shutil
 import time
 import threading
+from datetime import datetime
 from PIL import Image
 
 def show_progress_indicator(message="처리 중", stop_event=None):
@@ -266,6 +267,80 @@ def take_screenshots_and_create_pdf(video_path, interval_seconds):
         progress_thread.join()
         print("PDF 생성 완료!")
 
+def create_readme(video_info, url, download_folder, interval_seconds):
+    """README.md 파일을 생성하여 영상 정보를 저장합니다."""
+    readme_path = os.path.join(download_folder, 'README.md')
+    
+    # 시간 정보 포맷팅
+    duration_str = "알 수 없음"
+    if video_info.get('duration'):
+        duration = video_info['duration']
+        minutes = duration // 60
+        seconds = duration % 60
+        duration_str = f"{minutes:02d}:{seconds:02d}"
+    
+    upload_date_str = "알 수 없음"
+    if video_info.get('upload_date'):
+        upload_date = video_info['upload_date']
+        try:
+            formatted_date = datetime.strptime(upload_date, '%Y%m%d').strftime('%Y년 %m월 %d일')
+            upload_date_str = formatted_date
+        except ValueError:
+            upload_date_str = upload_date
+    
+    # 조회수 포맷팅
+    view_count_str = "알 수 없음"
+    if video_info.get('view_count'):
+        view_count = video_info['view_count']
+        if view_count >= 1000000:
+            view_count_str = f"{view_count/1000000:.1f}M"
+        elif view_count >= 1000:
+            view_count_str = f"{view_count/1000:.1f}K"
+        else:
+            view_count_str = str(view_count)
+    
+    # README 내용 생성
+    readme_content = f"""# {video_info.get('title', '제목 없음')}
+
+## 📺 영상 정보
+- **원본 URL**: {url}
+- **채널명**: {video_info.get('uploader', '알 수 없음')}
+- **업로드 날짜**: {upload_date_str}
+- **영상 길이**: {duration_str}
+- **조회수**: {view_count_str}
+- **영상 ID**: {video_info.get('id', '알 수 없음')}
+
+## 📝 설명
+{video_info.get('description', '설명이 없습니다.')[:500]}{"..." if len(video_info.get('description', '')) > 500 else ""}
+
+## 📸 스크린샷 정보
+- **추출 간격**: {interval_seconds}초마다
+- **다운로드 날짜**: {datetime.now().strftime('%Y년 %m월 %d일 %H:%M:%S')}
+
+## 📁 파일 구조
+```
+{os.path.basename(download_folder)}/
+├── README.md (이 파일)
+├── {video_info.get('title', '영상파일')}.{video_info.get('ext', 'mp4')}
+├── {video_info.get('title', '영상파일')}_screenshots.pdf
+└── screenshots/
+    ├── screenshot_0001.png
+    ├── screenshot_0002.png
+    └── ...
+```
+
+---
+*YouTube Downloader로 생성됨*
+"""
+    
+    # README.md 파일 저장
+    try:
+        with open(readme_path, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
+        print(f"README.md 파일이 생성되었습니다: {readme_path}")
+    except Exception as e:
+        print(f"README.md 생성 중 오류 발생: {e}")
+
 def main():
     """메인 함수"""
     youtube_url = input("유튜브 URL을 입력하세요: ")
@@ -302,6 +377,10 @@ def main():
         downloaded_video_path = download_video(youtube_url, selected_format_id, video_title)
         
         if downloaded_video_path:
+            # README.md 생성
+            download_folder = os.path.dirname(downloaded_video_path)
+            create_readme(video_info, youtube_url, download_folder, interval_seconds)
+            # 스크린샷 및 PDF 생성
             take_screenshots_and_create_pdf(downloaded_video_path, interval_seconds)
     else:
         # 포맷이 여러개면 사용자 선택
@@ -318,6 +397,10 @@ def main():
                     downloaded_video_path = download_video(youtube_url, selected_format_id, video_title)
                     
                     if downloaded_video_path:
+                        # README.md 생성
+                        download_folder = os.path.dirname(downloaded_video_path)
+                        create_readme(video_info, youtube_url, download_folder, interval_seconds)
+                        # 스크린샷 및 PDF 생성
                         take_screenshots_and_create_pdf(downloaded_video_path, interval_seconds)
                     break
                 else:
