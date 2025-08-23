@@ -33,29 +33,27 @@ def show_progress_indicator(message="처리 중", stop_event=None):
 
 def get_video_info(url):
     """yt-dlp를 사용하여 전체 비디오 정보를 JSON으로 가져옵니다."""
-    command = ['yt-dlp', '-j', url]
+    clients = ['android', 'ios', 'tv']
     
     # 프로그레스 인디케이터 시작
     stop_event = threading.Event()
     progress_thread = threading.Thread(target=show_progress_indicator, args=("정보를 가져오는 중", stop_event))
     progress_thread.start()
     
-    try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        stop_event.set()
-        progress_thread.join()
-        return json.loads(result.stdout)
-    except subprocess.CalledProcessError as e:
-        stop_event.set()
-        progress_thread.join()
-        print(f"\r오류: 비디오 정보를 가져올 수 없습니다. URL을 확인하세요.")
-        print(e.stderr)
-        return None
-    except json.JSONDecodeError:
-        stop_event.set()
-        progress_thread.join()
-        print("\r오류: 비디오 정보 파싱에 실패했습니다.")
-        return None
+    for client in clients:
+        try:
+            command = ['yt-dlp', '-j', '--extractor-args', f'youtube:player-client={client}', '--retries', '3', url]
+            result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=30)
+            stop_event.set()
+            progress_thread.join()
+            return json.loads(result.stdout)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            continue
+    
+    stop_event.set()
+    progress_thread.join()
+    print(f"\r오류: 모든 클라이언트로 비디오 정보를 가져올 수 없습니다. URL을 확인하세요.")
+    return None
 
 def display_formats(formats, duration, interval_seconds):
     """사용자에게 선택할 수 있는 비디오 포맷을 표시합니다."""
@@ -159,14 +157,29 @@ def download_video(url, format_id, video_title):
 
     output_template = os.path.join(download_folder, f'{safe_title}.%(ext)s')
     
-    # 비디오 정보 가져오기
-    info_command = ['yt-dlp', '-j', '-f', format_id, url]
-    video_info = json.loads(subprocess.run(info_command, capture_output=True, text=True).stdout)
+    # 작동하는 클라이언트 찾기
+    clients = ['android', 'ios', 'tv']
+    working_client = None
+    
+    for client in clients:
+        try:
+            info_command = ['yt-dlp', '-j', '-f', format_id, '--extractor-args', f'youtube:player-client={client}', url]
+            result = subprocess.run(info_command, capture_output=True, text=True, check=True, timeout=15)
+            video_info = json.loads(result.stdout)
+            working_client = client
+            break
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            continue
+    
+    if not working_client:
+        print("오류: 다운로드 가능한 클라이언트를 찾을 수 없습니다.")
+        return None
+        
     ext = video_info.get('ext', 'mp4')
     final_video_path = os.path.join(download_folder, f'{safe_title}.{ext}')
 
     print(f"\n'{download_folder}' 폴더에 다운로드를 시작합니다...")
-    command = ['yt-dlp', '-f', format_id, '-o', output_template, url]
+    command = ['yt-dlp', '-f', format_id, '-o', output_template, '--extractor-args', f'youtube:player-client={working_client}', '--retries', '3', url]
     
     # 다운로드 프로그레스 인디케이터 시작
     stop_event = threading.Event()
