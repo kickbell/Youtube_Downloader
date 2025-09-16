@@ -2,7 +2,7 @@
   <a href="README.md">한국어</a> | <b>English</b>
 </div>
 
-# YouTube Short Downloader (Screeenshot+PDF) 
+# YouTube Shorts Downloader (Screeenshot+PDF) 
 
 A simple CLI tool to download YouTube videos (optimized for Shorts), extract screenshots at a fixed interval, and bundle them into a single PDF.
 
