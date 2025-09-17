@@ -7,6 +7,37 @@ import threading
 from datetime import datetime
 from PIL import Image
 
+def find_yt_dlp():
+    """yt-dlp 실행파일의 경로를 찾습니다."""
+    # 먼저 PATH에서 찾기
+    yt_dlp_path = shutil.which('yt-dlp')
+    if yt_dlp_path:
+        return yt_dlp_path
+    
+    # Python 사용자 설치 경로에서 찾기
+    import sys
+    user_base = subprocess.run([sys.executable, '-m', 'site', '--user-base'], 
+                              capture_output=True, text=True).stdout.strip()
+    if user_base:
+        user_bin_path = os.path.join(user_base, 'bin', 'yt-dlp')
+        if os.path.exists(user_bin_path):
+            return user_bin_path
+    
+    # 일반적인 경로들 확인
+    common_paths = [
+        '/usr/local/bin/yt-dlp',
+        '/opt/homebrew/bin/yt-dlp',
+        os.path.expanduser('~/Library/Python/3.10/bin/yt-dlp'),
+        os.path.expanduser('~/Library/Python/3.11/bin/yt-dlp'),
+        os.path.expanduser('~/Library/Python/3.12/bin/yt-dlp'),
+    ]
+    
+    for path in common_paths:
+        if os.path.exists(path):
+            return path
+    
+    return None
+
 def show_progress_indicator(message="처리 중", stop_event=None):
     """프로그레스 인디케이터를 표시합니다."""
     spinner = [
@@ -34,6 +65,11 @@ def show_progress_indicator(message="처리 중", stop_event=None):
 
 def get_video_info(url):
     """yt-dlp를 사용하여 전체 비디오 정보를 JSON으로 가져옵니다."""
+    yt_dlp_path = find_yt_dlp()
+    if not yt_dlp_path:
+        print("오류: yt-dlp가 설치되어 있지 않습니다. 'pip install yt-dlp'로 설치해주세요.")
+        return None
+    
     clients = ['android', 'ios', 'tv']
     
     # 프로그레스 인디케이터 시작
@@ -43,7 +79,7 @@ def get_video_info(url):
     
     for client in clients:
         try:
-            command = ['yt-dlp', '-j', '--extractor-args', f'youtube:player-client={client}', '--retries', '3', url]
+            command = [yt_dlp_path, '-j', '--extractor-args', f'youtube:player-client={client}', '--retries', '3', url]
             result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=30)
             stop_event.set()
             progress_thread.join()
@@ -144,6 +180,11 @@ def display_formats(formats, duration, interval_seconds):
 
 def download_video(url, format_id, video_title):
     """선택한 포맷으로 비디오를 다운로드하고, 파일 경로를 반환합니다."""
+    yt_dlp_path = find_yt_dlp()
+    if not yt_dlp_path:
+        print("오류: yt-dlp가 설치되어 있지 않습니다.")
+        return None
+    
     # 파일명 길이 제한 (macOS 호환성)
     safe_title = "".join(c for c in video_title if c.isalnum() or c in (' ', '_')).rstrip()
     if len(safe_title) > 50:  # 50자로 제한 (한글 고려)
@@ -164,7 +205,7 @@ def download_video(url, format_id, video_title):
     
     for client in clients:
         try:
-            info_command = ['yt-dlp', '-j', '-f', format_id, '--extractor-args', f'youtube:player-client={client}', url]
+            info_command = [yt_dlp_path, '-j', '-f', format_id, '--extractor-args', f'youtube:player-client={client}', url]
             result = subprocess.run(info_command, capture_output=True, text=True, check=True, timeout=15)
             video_info = json.loads(result.stdout)
             working_client = client
@@ -180,7 +221,7 @@ def download_video(url, format_id, video_title):
     final_video_path = os.path.join(download_folder, f'{safe_title}.{ext}')
 
     print(f"\n'{download_folder}' 폴더에 다운로드를 시작합니다...")
-    command = ['yt-dlp', '-f', format_id, '-o', output_template, '--extractor-args', f'youtube:player-client={working_client}', '--retries', '3', url]
+    command = [yt_dlp_path, '-f', format_id, '-o', output_template, '--extractor-args', f'youtube:player-client={working_client}', '--retries', '3', url]
     
     # 다운로드 프로그레스 인디케이터 시작
     stop_event = threading.Event()
