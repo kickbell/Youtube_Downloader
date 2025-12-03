@@ -318,7 +318,7 @@ def create_readme(video_info, url, download_folder, interval_seconds):
         duration = video_info['duration']
         minutes = duration // 60
         seconds = duration % 60
-        duration_str = f"{minutes:02d}:{seconds:02d}"
+        duration_str = f"{int(minutes):02d}:{int(seconds):02d}"
     
     upload_date_str = "알 수 없음"
     if video_info.get('upload_date'):
