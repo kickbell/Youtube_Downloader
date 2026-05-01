@@ -79,7 +79,7 @@ def get_video_info(url):
     
     for client in clients:
         try:
-            command = [yt_dlp_path, '-j', '--extractor-args', f'youtube:player-client={client}', '--retries', '3', url]
+            command = [yt_dlp_path, '-j', '--extractor-args', f'youtube:player-client={client}', '--retries', '3', '--no-check-certificate', url]
             result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=30)
             stop_event.set()
             progress_thread.join()
@@ -205,7 +205,7 @@ def download_video(url, format_id, video_title):
     
     for client in clients:
         try:
-            info_command = [yt_dlp_path, '-j', '-f', format_id, '--extractor-args', f'youtube:player-client={client}', url]
+            info_command = [yt_dlp_path, '-j', '-f', format_id, '--extractor-args', f'youtube:player-client={client}', '--no-check-certificate', url]
             result = subprocess.run(info_command, capture_output=True, text=True, check=True, timeout=15)
             video_info = json.loads(result.stdout)
             working_client = client
@@ -221,7 +221,7 @@ def download_video(url, format_id, video_title):
     final_video_path = os.path.join(download_folder, f'{safe_title}.{ext}')
 
     print(f"\n'{download_folder}' 폴더에 다운로드를 시작합니다...")
-    command = [yt_dlp_path, '-f', format_id, '-o', output_template, '--extractor-args', f'youtube:player-client={working_client}', '--retries', '3', url]
+    command = [yt_dlp_path, '-f', format_id, '-o', output_template, '--extractor-args', f'youtube:player-client={working_client}', '--retries', '3', '--no-check-certificate', url]
     
     # 다운로드 프로그레스 인디케이터 시작
     stop_event = threading.Event()
