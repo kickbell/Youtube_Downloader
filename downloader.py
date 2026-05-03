@@ -386,17 +386,7 @@ def main():
     """메인 함수"""
     youtube_url = input("유튜브 URL을 입력하세요: ")
     
-    interval_seconds = 0
-    while True:
-        try:
-            interval_str = input("몇 초 간격으로 스크린샷을 추출하시겠습니까? ")
-            interval_seconds = int(interval_str)
-            if interval_seconds > 0:
-                break
-            else:
-                print("0보다 큰 숫자를 입력해주세요.")
-        except ValueError:
-            print("숫자를 입력해야 합니다.")
+    interval_seconds = 1  # 스크린샷 추출 간격 (고정값: 1초)
 
     video_info = get_video_info(youtube_url)
     if not video_info:
